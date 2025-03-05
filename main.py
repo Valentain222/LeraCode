@@ -6,6 +6,7 @@ import numpy as np
 import cv2
 
 from mcx import MCX
+import asyncio
 
 
 class Step:
@@ -56,7 +57,7 @@ EXIT_FLASK = (
     Step("GO_TO_FLASK", True),
     Step("DESCENT_GO_TO_FLASK", True),
     Step("RELEASE_FLASK"),
-    Step("UPPER_Z")
+    Step("GO_TO_START")
 )
 
 STEPS_FIRST = (
@@ -115,11 +116,22 @@ def json_load(file_name):
     return data_from_file
 
 
-def manipulate_move(manipulate, x, y, z, t, grapper):
-    manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
+# Tree variant of function
+async def manipulate_move(manipulate, x, y, z, t, grapper):
+    # manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
+    # -----------------------------------------------
+    # while manipulate.getManipulatorStatus == 0:
+    #     manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
+    #     await asyncio.sleep(0.5)
+    # -----------------------------------------------
+    start_counter = manipulate.getManipulatorCount()
+    current_counter = start_counter
+    while current_counter - start_counter != 0:
+        manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
+        await asyncio.sleep(0.5)
 
 
-def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_coordinates: list, point_coordinates):
+async def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_coordinates: list, point_coordinates):
     manipulate_x, manipulate_y, manipulate_z, rotate_x, rotate_y, rotate_z = manipulate.getManipulatorMotor()
     strat_x, start_y, start_z = start_coordinates
     camera_x, camera_y, camera_z = camera_coordinates
@@ -135,19 +147,21 @@ def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_co
         print(f"Step: {step}")
         match step.name:
             case ("GO_TO_FLASK"):
-                manipulate_move(manipulate, x, y, manipulate_z, 0, int(step.is_graper))
+                await manipulate_move(manipulate, x, y, manipulate_z, 0, int(step.is_graper))
             case ("DESCENT_GO_TO_FLASK"):
-                manipulate_move(manipulate, manipulate_x, manipulate_y, Z_FLASK, 0, int(step.is_graper))
+                await manipulate_move(manipulate, manipulate_x, manipulate_y, Z_FLASK, 0, int(step.is_graper))
             case ("CAPTURE_FLASK"):
-                manipulate_move(manipulate, manipulate_x, manipulate_y, z, 0, 1)
+                await manipulate_move(manipulate, manipulate_x, manipulate_y, z, 0, 1)
             case ("UPPER_Z"):
-                manipulate_move(manipulate, manipulate_x, manipulate_y, start_z, 0, int(step.is_graper))
+                await manipulate_move(manipulate, manipulate_x, manipulate_y, start_z, 0, int(step.is_graper))
             case ("GO_TO_CAMERA"):
-                manipulate_move(manipulate, camera_x, camera_y, start_z, 0, 1)
+                await manipulate_move(manipulate, camera_x, camera_y, start_z, 0, 1)
             case ("DESCENT_TO_CAMERA"):
-                manipulate_move(manipulate, manipulate_x, manipulate_y, camera_z, 0, 1)
+                await manipulate_move(manipulate, manipulate_x, manipulate_y, camera_z, 0, 1)
             case ("REALESE_FLASK"):
-                manipulate_move(manipulate, manipulate_x, manipulate_y, manipulate_z, 0, 0)
+                await manipulate_move(manipulate, manipulate_x, manipulate_y, manipulate_z, 0, 0)
+            case "GO_TO_START":
+                await manipulate_move(manipulate, start_x, start_y, start_z, 0, 0)
 
             case "ROTATE_FLASK":
                 count_image = 0
@@ -158,7 +172,7 @@ def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_co
                         manipulate.move(ROBOT_NAME, manipulate_x, manipulate_y, manipulate_z,
                                         angles_rotate[count_image], 1)
                         count_image += 1
-                    time.sleep(0.7)
+                    await asyncio.sleep(0.7)
 
             case "RECEIVE_FLASK":
                 manipulate.move(ROBOT_NAME, manipulate_x, manipulate_y, manipulate_z, -1, 1)
@@ -168,12 +182,12 @@ def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_co
                     frame = get_image(manipulate)
                     cv2.imwrite(f'tempPhotos/frame_{number_image}.png', frame)
 
-                    time.sleep(0.7)
+                    await asyncio.sleep(0.7)
 
                 create_video()
 
         steps.next_step()
-    time.sleep(1.0)
+    await asyncio.sleep(1.0)
 
 
 def load_point() -> str:
@@ -188,7 +202,7 @@ STEPS = {
 }
 
 
-def main(task: int, manipulate: MCX):
+async def main(task: int, manipulate: MCX):
     point = load_point()
     coordinates = json_load("coordinates.json")
 
@@ -197,7 +211,7 @@ def main(task: int, manipulate: MCX):
     steps = STEPS.get(task)
 
     while True:
-        flask_move(manipulate, steps, coordinates.get('start'),
+        await flask_move(manipulate, steps, coordinates.get('start'),
                    coordinates.get('camera'),
                    (*coordinates.get(point), 95))
 
@@ -207,4 +221,4 @@ def main(task: int, manipulate: MCX):
 
 if __name__ == "__main__":
     my_robot = MCX()
-    main(1, my_robot)
+    asyncio.run((main(1, my_robot))
