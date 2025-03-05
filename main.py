@@ -183,14 +183,20 @@ def load_point() -> str:
     return point
 
 
-def task_first(manipulate):
+STEPS = {
+    1: Steps(STEPS_FIRST),
+    2: Steps(STEPS_SECOND),
+    3: Steps(STEPS_THIRD)
+}
+
+
+def main(task: int, manipulate: MCX):
     point = load_point()
     coordinates = json_load("coordinates.json")
 
-    steps = Steps(STEPS_FIRST)
-
     if point not in coordinates.keys():
         raise ValueError("Input wrong key-point")
+    steps = STEPS.get(task)
 
     while True:
         flask_move(manipulate, steps, coordinates.get('start'),
@@ -199,34 +205,8 @@ def task_first(manipulate):
 
         if manipulate.getManipulatorWarning() != 0:
             print(manipulate.getManipulatorWarningStr())
-
-
-def task_second(manipulate):
-    point = load_point()
-    steps = Steps(STEPS_SECOND)
-    coordinates = json_load("coordinates.json")
-
-    if point not in coordinates.keys():
-        raise ValueError("Input wrong key-point")
-
-    while True:
-        flask_move(manipulate, steps, coordinates.get('start'),
-                   coordinates.get('camera'),
-                   (*coordinates.get(point), 95))
-
-        if manipulate.getManipulatorWarning() != 0:
-            print(manipulate.getManipulatorWarningStr())
-
-
-def task_third(manipulate):
-    point = load_point()
-    coordinates = json_load("coordinates.json")
-    steps = Steps(STEPS_THIRD)
-
-    while True:
-        flask_move(manipulate, steps, coordinates.get('start'), coordinates.get('camera'), coordinates.get(point))
 
 
 if __name__ == "__main__":
     my_robot = MCX()
-    task_first(my_robot)
+    main(1, my_robot)
