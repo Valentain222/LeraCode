@@ -114,9 +114,14 @@ def json_load(file_name):
         data_from_file = json.load(json_file)
     return data_from_file
 
+
 # Tree variant of function
 def manipulate_move(manipulate, x, y, z, t, grapper):
-    manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
+    # manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
+    # -----------------------------------------------
+    while manipulate.getManipulatorStatus == 0:
+        manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
+        time.sleep(0.5)
 
 
 def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_coordinates: list, point_coordinates):
