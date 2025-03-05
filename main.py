@@ -54,6 +54,7 @@ GO_TO_CAMERA_STEPS = (
 EXIT_FLASK = (
     Step("UPPER_Z", True),
     Step("GO_TO_FLASK", True),
+    Step("DESCENT_GO_TO_FLASK", True),
     Step("RELEASE_FLASK"),
     Step("UPPER_Z")
 )
@@ -81,6 +82,7 @@ STEPS_THIRD = (
 Z_FLASK = 95
 COUNT_IMAGES = 8
 NUMBER_VIDEOS = 1
+VIDEO_SIZE = (500, 500)
 
 
 def get_image(manipulate: MCX):
@@ -95,10 +97,11 @@ def get_image(manipulate: MCX):
 def create_video():
     global NUMBER_VIDEOS
 
-    writer = cv2.VideoWriter(f"Video_{NUMBER_VIDEOS}.mgp", cv2.VideoWriter_fourcc(*'MPEG'), 30, (500, 500))
+    writer = cv2.VideoWriter(f"Video_{NUMBER_VIDEOS}.mgp", cv2.VideoWriter_fourcc(*'MPEG'), 30, VIDEO_SIZE)
     images = [cv2.imread(f'tempPhotos/{file_name}') for file_name in os.listdir('tempPhotos/')]
 
     for image in images:
+        image = cv2.resize(image, VIDEO_SIZE)
         writer.write(image)
 
     writer.release()
@@ -112,9 +115,8 @@ def json_load(file_name):
     return data_from_file
 
 
-def go_to_flask(manipulate: MCX ,x, y, z, is_grape=False):
-    grape = 0 if not is_grape else 1
-    manipulate.move(ROBOT_NAME, x, y, z, 0, grape)
+def manipulate_move(manipulate, x, y, z, t, grapper):
+    manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
 
 
 def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_coordinates: list, point_coordinates):
@@ -133,23 +135,19 @@ def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_co
         print(f"Step: {step}")
         match step.name:
             case ("GO_TO_FLASK"):
-                go_to_flask(manipulate, x, y, manipulate_z, step.is_graper)
+                manipulate_move(manipulate, x, y, manipulate_z, 0, int(step.is_graper))
             case ("DESCENT_GO_TO_FLASK"):
-                manipulate.move(ROBOT_NAME, manipulate_x, manipulate_y, Z_FLASK, 0, int(step.is_graper))
+                manipulate_move(manipulate, manipulate_x, manipulate_y, Z_FLASK, 0, int(step.is_graper))
             case ("CAPTURE_FLASK"):
-                manipulate.move(ROBOT_NAME, manipulate_x, manipulate_y, z, 0, 1)
+                manipulate_move(manipulate, manipulate_x, manipulate_y, z, 0, 1)
             case ("UPPER_Z"):
-                manipulate.move(ROBOT_NAME, manipulate_x, manipulate_y, start_z, 0, int(step.is_graper))
-                if manipulate.getManipulatorStatus() == 0:
-                    manipulate.move(ROBOT_NAME, manipulate_x, manipulate_y, start_z, 0, int(step.is_graper))
-                else:
-                    print('OK')
+                manipulate_move(manipulate, manipulate_x, manipulate_y, start_z, 0, int(step.is_graper))
             case ("GO_TO_CAMERA"):
-                manipulate.move(ROBOT_NAME, camera_x, camera_y, start_z, 0, 1)
+                manipulate_move(manipulate, camera_x, camera_y, start_z, 0, 1)
             case ("DESCENT_TO_CAMERA"):
-                manipulate.move(ROBOT_NAME, manipulate_x, manipulate_y, camera_z, 0, 1)
+                manipulate_move(manipulate, manipulate_x, manipulate_y, camera_z, 0, 1)
             case ("REALESE_FLASK"):
-                manipulate.move(ROBOT_NAME, manipulate_x, manipulate_y, manipulate_z, 0, 0)
+                manipulate_move(manipulate, manipulate_x, manipulate_y, manipulate_z, 0, 0)
 
             case "ROTATE_FLASK":
                 count_image = 0
