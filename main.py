@@ -179,11 +179,12 @@ def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_co
             case "RECEIVE_FLASK":
                 angles = list(range(-135, 225, 1))
                 number_image = 0
-                while manipulate.getManipulatorStatus() != 0 and number_image <= len(angles) - 1:
-                    frame = get_image(manipulate)
-                    cv2.imwrite(f'tempPhotos/frame_{number_image}.png', frame)
-                    manipulate_move(manipulate, manipulate_x, manipulate_y, manipulate_z, angles[number_image], 1)
-                    number_image += 1
+                while number_image <= len(angles) - 1:
+                    if manipulate.getManipulatorStatus == 0:
+                        frame = get_image(manipulate)
+                        cv2.imwrite(f'tempPhotos/frame_{number_image}.png', frame)
+                        manipulate_move(manipulate, manipulate_x, manipulate_y, manipulate_z, angles[number_image], 1)
+                        number_image += 1
 
                     time.sleep(0.7)
 
