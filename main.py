@@ -56,7 +56,7 @@ EXIT_FLASK = (
     Step("GO_TO_FLASK", True),
     Step("DESCENT_GO_TO_FLASK", True),
     Step("RELEASE_FLASK"),
-    Step("UPPER_Z")
+    Step("GO_TO_START")
 )
 
 STEPS_FIRST = (
@@ -115,8 +115,22 @@ def json_load(file_name):
     return data_from_file
 
 
+# Tree variant of function
 def manipulate_move(manipulate, x, y, z, t, grapper):
-    manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
+    new_x = 0.1
+    # manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
+    # -----------------------------------------------
+    # while manipulate.getManipulatorStatus == 0:
+    #     manipulate.move(ROBOT_NAME, x-new_x, y, z, t, grapper)
+    #     new_x *= -1 
+    #     time.sleep(0.5)
+    # -----------------------------------------------
+    start_counter = manipulate.getManipulatorCount()
+    current_counter = start_counter
+    while current_counter - start_counter != 0:
+        manipulate.move(ROBOT_NAME, x-new_x, y, z, t, grapper)
+        new_x *= -1 
+        time.sleep(0.5)
 
 
 def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_coordinates: list, point_coordinates):
@@ -148,21 +162,22 @@ def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_co
                 manipulate_move(manipulate, manipulate_x, manipulate_y, camera_z, 0, 1)
             case ("REALESE_FLASK"):
                 manipulate_move(manipulate, manipulate_x, manipulate_y, manipulate_z, 0, 0)
+            case "GO_TO_START":
+                manipulate_move(manipulate, start_x, start_y, start_z, 0, 0)
 
             case "ROTATE_FLASK":
                 count_image = 0
                 angles_rotate = list(range(-135, 225, step.angle))
+                manipulate_move(manipulate, manipulate_x, manipulate_y, manipulate_z, -1, 1)
+
                 while count_image <= COUNT_IMAGES -1:
-                    if manipulate.getManipulatorStatus() == 0:
+                    if manipulate.getManipulatorMotor()[-3] in angles_rotate:
                         cv2.imread(f"FRAME_{count_image+1}.png", get_image(manipulate))
-                        manipulate.move(ROBOT_NAME, manipulate_x, manipulate_y, manipulate_z,
-                                        angles_rotate[count_image], 1)
                         count_image += 1
                     time.sleep(0.7)
 
             case "RECEIVE_FLASK":
-                manipulate.move(ROBOT_NAME, manipulate_x, manipulate_y, manipulate_z, -1, 1)
-
+                manipulate_move(manipulate, manipulate_x, manipulate_y, manipulate_z, -1, 1)
                 number_image = 0
                 while manipulate.getManipulatorStatus() != 0:
                     frame = get_image(manipulate)
