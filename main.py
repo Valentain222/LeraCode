@@ -56,7 +56,7 @@ EXIT_FLASK = (
     Step("GO_TO_FLASK", True),
     Step("DESCENT_GO_TO_FLASK", True),
     Step("RELEASE_FLASK"),
-    Step("UPPER_Z")
+    Step("GO_TO_START")
 )
 
 STEPS_FIRST = (
@@ -114,7 +114,7 @@ def json_load(file_name):
         data_from_file = json.load(json_file)
     return data_from_file
 
-
+# Tree variant of function
 def manipulate_move(manipulate, x, y, z, t, grapper):
     manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
 
@@ -148,6 +148,8 @@ def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_co
                 manipulate_move(manipulate, manipulate_x, manipulate_y, camera_z, 0, 1)
             case ("REALESE_FLASK"):
                 manipulate_move(manipulate, manipulate_x, manipulate_y, manipulate_z, 0, 0)
+            case "GO_TO_START":
+                manipulate_move(manipulate, start_x, start_y, start_z, 0, 0)
 
             case "ROTATE_FLASK":
                 count_image = 0
