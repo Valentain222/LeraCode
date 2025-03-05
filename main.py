@@ -177,7 +177,7 @@ def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_co
                     time.sleep(0.7)
 
             case "RECEIVE_FLASK":
-                angles = list(range(-135, 225, 1))
+                angles = list(range(-180, 180, 1))
                 number_image = 0
                 while number_image <= len(angles) - 1:
                     if manipulate.getManipulatorStatus == 0:
