@@ -117,16 +117,19 @@ def json_load(file_name):
 
 # Tree variant of function
 def manipulate_move(manipulate, x, y, z, t, grapper):
+    new_x = 0.1
     # manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
     # -----------------------------------------------
     # while manipulate.getManipulatorStatus == 0:
-    #     manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
+    #     manipulate.move(ROBOT_NAME, x-new_x, y, z, t, grapper)
+    #     new_x *= -1 
     #     time.sleep(0.5)
     # -----------------------------------------------
     start_counter = manipulate.getManipulatorCount()
     current_counter = start_counter
     while current_counter - start_counter != 0:
-        manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
+        manipulate.move(ROBOT_NAME, x-new_x, y, z, t, grapper)
+        new_x *= -1 
         time.sleep(0.5)
 
 
