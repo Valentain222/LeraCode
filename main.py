@@ -12,7 +12,7 @@ class Step:
     def __init__(self, name: str, is_graper: bool = False, angle: int = 0):
         self.name = name
         self.is_graper = is_graper
-        self.angle = 0
+        self.angle = angle
 
     def __str__(self):
         return self.name
@@ -177,13 +177,14 @@ def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_co
 
                 while count_image <= COUNT_IMAGES - 1:
                     if manipulate.getManipulatorStatus() == 0:
-                        cv2.imread(f"FRAME_{count_image+1}.png", get_image(manipulate))
+                        cv2.imread(f"FRAME_{count_image}.png", get_image(manipulate))
                         count_image += 1
-                        manipulate_move(manipulate, manipulate_x, manipulate_y, manipulate_z, angles_rotate[count_image], 1)
+                        manipulate_move(manipulate, manipulate_x, manipulate_y, manipulate_z,
+                                        angles_rotate[count_image], 1)
                     time.sleep(0.7)
 
             case "RECEIVE_FLASK":
-                angles = list(range(1, 180, 1)) + list(range(-180, 1, 5))
+                angles = list(range(1, 180, 5)) + list(range(-180, 1, 5))
                 number_image = 0
                 while number_image <= len(angles) - 1:
                     if manipulate.getManipulatorStatus == 0:
