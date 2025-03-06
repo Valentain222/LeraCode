@@ -94,11 +94,16 @@ def get_image(manipulate: MCX):
     return None
 
 
+def save_manipulator_image(file_name, manipulate: MCX):
+    with open(file_name, 'w') as file:
+        file.write(manipulate.getCamera1Image())
+
+
 def create_video():
     global NUMBER_VIDEOS
 
-    writer = cv2.VideoWriter(f"Video_{NUMBER_VIDEOS}.mgp", cv2.VideoWriter_fourcc(*'MPEG'), 30, VIDEO_SIZE)
-    images = [cv2.imread(f'tempPhotos/{file_name}') for file_name in os.listdir('tempPhotos/')]
+    writer = cv2.VideoWriter(f"Video_{NUMBER_VIDEOS}.avi", cv2.VideoWriter_fourcc(*'XVID'), 30, VIDEO_SIZE)
+    images = [cv2.imread(file_name) for file_name in os.listdir() if file_name.endswith('png')]
 
     for image in images:
         image = cv2.resize(image, VIDEO_SIZE)
@@ -109,6 +114,7 @@ def create_video():
     for file in os.listdir('tempPhotos/'):
         os.remove(f'tempPhotos/{file}')
 
+
 def json_load(file_name):
     with open(file_name, 'r') as json_file:
         data_from_file = json.load(json_file)
@@ -117,20 +123,20 @@ def json_load(file_name):
 
 # Tree variant of function
 def manipulate_move(manipulate, x, y, z, t, grapper):
-    new_x = 0.1
-    # manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
+    # new_x = 0.1
+    manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
     # -----------------------------------------------
     # while manipulate.getManipulatorStatus == 0:
     #     manipulate.move(ROBOT_NAME, x-new_x, y, z, t, grapper)
     #     new_x *= -1 
     #     time.sleep(0.5)
     # -----------------------------------------------
-    start_counter = manipulate.getManipulatorCount()
-    current_counter = start_counter
-    while current_counter - start_counter != 0:
-        manipulate.move(ROBOT_NAME, x-new_x, y, z, t, grapper)
-        new_x *= -1 
-        time.sleep(0.5)
+    # start_counter = manipulate.getManipulatorCount()
+    # current_counter = start_counter
+    # while current_counter - start_counter != 0:
+    #     manipulate.move(ROBOT_NAME, x-new_x, y, z, t, grapper)
+    #     new_x *= -1
+    #     time.sleep(0.5)
 
 
 def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_coordinates: list, point_coordinates):
@@ -177,16 +183,15 @@ def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_co
                     time.sleep(0.7)
 
             case "RECEIVE_FLASK":
-                angles = list(range(1, 180, 1)) + list(range(-180, 1, 1))
+                angles = list(range(1, 180, 1)) + list(range(-180, 1, 5))
                 number_image = 0
                 while number_image <= len(angles) - 1:
                     if manipulate.getManipulatorStatus == 0:
-                        frame = get_image(manipulate)
-                        cv2.imwrite(f'tempPhotos/frame_{number_image}.png', frame)
+                        save_manipulator_image(f'frame_{number_image}.png', manipulate)
                         manipulate_move(manipulate, manipulate_x, manipulate_y, manipulate_z, angles[number_image], 1)
                         number_image += 1
 
-                    time.sleep(0.7)
+                    time.sleep(0.1)
 
                 create_video()
 
@@ -225,4 +230,5 @@ def main(task: int, manipulate: MCX):
 
 if __name__ == "__main__":
     my_robot = MCX()
+    time.sleep(1)
     main(1, my_robot)
