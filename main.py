@@ -122,17 +122,15 @@ def manipulate_move(manipulate, x, y, z, t, grapper):
     while manipulate.getManipulatorStatus() == 0:
         time.sleep(0.2)
 
-is_receive = False
+
 def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_coordinates: list, point_coordinates):
-    manipulate_x, manipulate_y, manipulate_z, rotate_x, rotate_y, rotate_z = manipulate.getManipulatorMotor()
     start_x, start_y, start_z = start_coordinates
     camera_x, camera_y, camera_z = camera_coordinates
     x, y, z = point_coordinates
 
-    global is_receive
-
     step = steps.step
-    if manipulate.getManipulatorStatus() == 0 and not is_receive:
+    if manipulate.getManipulatorStatus() == 0:
+        manipulate_x, manipulate_y, manipulate_z, rotate_x, rotate_y, rotate_z = manipulate.getManipulatorMotor()
         print(f"Step: {step}")
         match step.name:
             case ("GO_TO_FLASK"):
@@ -162,7 +160,7 @@ def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_co
                         count_image += 1
                         manipulate_move(manipulate, manipulate_x, manipulate_y, manipulate_z,
                                         angles_rotate[count_image], 1)
-                    time.sleep(0.7)
+                    time.sleep(0.01)
 
             case "RECEIVE_FLASK":
                 angles = list(range(1, 180, 10)) + list(range(-180, 1, 10))
@@ -177,8 +175,7 @@ def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_co
                         frames.append(image)
                         number_image += 1
 
-                        time.sleep(0.01)
-                is_receive = False
+                        time.sleep(0.5)
 
                 create_video(frames)
 
