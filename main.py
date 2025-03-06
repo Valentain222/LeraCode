@@ -135,7 +135,7 @@ def manipulate_move(manipulate, x, y, z, t, grapper):
 
 def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_coordinates: list, point_coordinates):
     manipulate_x, manipulate_y, manipulate_z, rotate_x, rotate_y, rotate_z = manipulate.getManipulatorMotor()
-    strat_x, start_y, start_z = start_coordinates
+    start_x, start_y, start_z = start_coordinates
     camera_x, camera_y, camera_z = camera_coordinates
     x, y, z = point_coordinates
 
