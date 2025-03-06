@@ -36,7 +36,6 @@ class Steps:
         return True if self._index == len(self.__steps) - 1 else False
 
 
-
 ROBOT_NAME = "Robot9_1"
 
 GO_TO_FLASK_STEPS = (
@@ -99,20 +98,16 @@ def save_manipulator_image(file_name, manipulate: MCX):
         file.write(manipulate.getCamera1Image())
 
 
-def create_video():
+def create_video(frames):
     global NUMBER_VIDEOS
 
-    writer = cv2.VideoWriter(f"Video_{NUMBER_VIDEOS}.avi", cv2.VideoWriter_fourcc(*'XVID'), 30, VIDEO_SIZE)
-    images = [cv2.imread(file_name) for file_name in os.listdir() if file_name.endswith('png')]
+    writer = cv2.VideoWriter(f"Video_{NUMBER_VIDEOS}.avi", cv2.VideoWriter_fourcc(*'XVID'), 15, VIDEO_SIZE)
 
-    for image in images:
-        image = cv2.resize(image, VIDEO_SIZE)
-        writer.write(image)
+    for frame in frames:
+        frame = cv2.resize(frame, VIDEO_SIZE)
+        writer.write(frame)
 
     writer.release()
-
-    for file in os.listdir('tempPhotos/'):
-        os.remove(f'tempPhotos/{file}')
 
 
 def json_load(file_name):
@@ -123,35 +118,21 @@ def json_load(file_name):
 
 # Tree variant of function
 def manipulate_move(manipulate, x, y, z, t, grapper):
-    # new_x = 0.1
     manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
-    # -----------------------------------------------
-    # while manipulate.getManipulatorStatus == 0:
-    #     manipulate.move(ROBOT_NAME, x-new_x, y, z, t, grapper)
-    #     new_x *= -1 
-    #     time.sleep(0.5)
-    # -----------------------------------------------
-    # start_counter = manipulate.getManipulatorCount()
-    # current_counter = start_counter
-    # while current_counter - start_counter != 0:
-    #     manipulate.move(ROBOT_NAME, x-new_x, y, z, t, grapper)
-    #     new_x *= -1
-    #     time.sleep(0.5)
+    while manipulate.getManipulatorStatus == 0:
+        time.sleep(0.2)
 
-
+is_receive = False
 def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_coordinates: list, point_coordinates):
     manipulate_x, manipulate_y, manipulate_z, rotate_x, rotate_y, rotate_z = manipulate.getManipulatorMotor()
     start_x, start_y, start_z = start_coordinates
     camera_x, camera_y, camera_z = camera_coordinates
     x, y, z = point_coordinates
 
-    step = steps.step
+    global is_receive
 
-    # print(f'Step: {Step}')
-    # print(f"Manipulate coordinates: {manipulate_x, manipulate_y, manipulate_z}")
-    # print(f'Rotates coordinates: {rotate_x, rotate_y, rotate_z}')
-    # print(f'Status: {manipulate.getManipulatorStatus()}')
-    if manipulate.getManipulatorStatus() == 0:
+    step = steps.step
+    if manipulate.getManipulatorStatus() == 0 and not is_receive:
         print(f"Step: {step}")
         match step.name:
             case ("GO_TO_FLASK"):
@@ -184,25 +165,34 @@ def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_co
                     time.sleep(0.7)
 
             case "RECEIVE_FLASK":
-                angles = list(range(1, 180, 5)) + list(range(-180, 1, 5))
+                angles = list(range(1, 180, 10)) + list(range(-180, 1, 10))
                 number_image = 0
+                frames = []
+                is_receive = True
                 while number_image <= len(angles) - 1:
-                    if manipulate.getManipulatorStatus == 0:
-                        save_manipulator_image(f'frame_{number_image}.png', manipulate)
+                    if manipulate.getManipulatorStatus() == 0:
                         manipulate_move(manipulate, manipulate_x, manipulate_y, manipulate_z, angles[number_image], 1)
+                        print("ROTATE GRAPPERRRRRR!")
+                        image = get_image(manipulate)
+                        frames.append(image)
                         number_image += 1
 
-                    time.sleep(0.1)
+                        time.sleep(0.01)
+                is_receive = False
 
-                create_video()
+                create_video(frames)
 
         steps.next_step()
-    time.sleep(1.0)
+        time.sleep(0.5)
 
 
 def load_point() -> str:
     point = input()
     return point
+
+
+def load_points():
+    return input().split()
 
 
 STEPS = {
@@ -213,23 +203,29 @@ STEPS = {
 
 
 def main(task: int, manipulate: MCX):
-    point = load_point()
+    points = load_points()
     coordinates = json_load("coordinates.json")
 
-    if point not in coordinates.keys():
-        raise ValueError("Input wrong key-point")
-    steps = STEPS.get(task)
+    for point in points:
+        if point not in coordinates.keys():
+            raise ValueError("Input wrong key-point")
+        steps = STEPS.get(task)
 
-    while True:
-        flask_move(manipulate, steps, coordinates.get('start'),
-                   coordinates.get('camera'),
-                   (*coordinates.get(point), 95))
+        while True:
+            flask_move(manipulate, steps, coordinates.get('start'),
+                       coordinates.get('camera'),
+                       (*coordinates.get(point), 95))
 
-        if manipulate.getManipulatorWarning() != 0:
-            print(manipulate.getManipulatorWarningStr())
+            if manipulate.getManipulatorWarning() != 0:
+                print(manipulate.getManipulatorWarningStr())
+
+            if steps.is_stop:
+                break
+
+            time.sleep(0.01)
 
 
 if __name__ == "__main__":
     my_robot = MCX()
     time.sleep(1)
-    main(1, my_robot)
+    main(3, my_robot)
