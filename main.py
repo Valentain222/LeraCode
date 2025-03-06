@@ -119,7 +119,7 @@ def json_load(file_name):
 # Tree variant of function
 def manipulate_move(manipulate, x, y, z, t, grapper):
     manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
-    while manipulate.getManipulatorStatus == 0:
+    while manipulate.getManipulatorStatus() == 0:
         time.sleep(0.2)
 
 is_receive = False
