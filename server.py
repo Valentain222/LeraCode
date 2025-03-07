@@ -1,57 +1,39 @@
-import socket
+import asyncio
+import websockets
+import time
 
-import cv2
-import random
+class WebSocketServer:
+    def __init__(self, host='0.0.0.0'):
+        ports = [8766, 8765]
+        self.host = host
+        self.connected_clients = {port: set() for port in ports}
+        self.servers = []
+        asyncio.run(self.run(ports))
 
+    async def echo(self, websocket, port):
+        self.connected_clients[port].add(websocket)
+        try:
+            async for message in websocket:
+                await asyncio.gather(
+                    *(client.send(message) for client in self.connected_clients[port] if client != websocket)
+                )
 
-class Point:
-    def __init__(self, number: int, coordinate):
-        self.number = number
-        self.coordinate = coordinate
+            time.sleep(0.05)
 
-    def __str__(self):
-        return f'{self.number}|{self.coordinate[0]},{self.coordinate[1]}'
+        except websockets.exceptions.ConnectionClosed:
+            print("Клиент отключился")
+        finally:
+            self.connected_clients[port].remove(websocket)
 
+    async def start_server(self, port):
+        server = await websockets.serve(lambda ws, path: self.echo(ws, port), self.host, port)
+        self.servers.append(server)
+        return server
 
-LEN_X = 3.04
-LEN_Y = 5.4
+    async def run(self, ports):
+        await asyncio.gather(*[self.start_server(port) for port in ports])
+        print("Сервер запущен")
+        await asyncio.gather(*[server.wait_closed() for server in self.servers])
 
-my_map = cv2.imread('map.png')
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(('localhost', 12345))
-server.listen(1)
-print('Server start!')
-
-points = []
-
-def add_points(event,x,y,flags,param):
-    if event == cv2.EVENT_LBUTTONDBLCLK:
-        cv2.circle(my_map, (x, y), 10, (0, 0, 255), -1)
-        points.append(Point(len(points)+1, (x/(my_map.shape[1] / LEN_X), (my_map.shape[0]-y)/(my_map.shape[0] / LEN_Y))))
-
-def main():
-    once = True
-    while True:
-        cv2.imshow('MAIN', my_map)
-        cv2.setMouseCallback('MAIN', add_points)
-        key = cv2.waitKey(10)
-        if key == 13 and once:
-            once = False
-            client_socket, addr = server.accept()
-            print(f"Подключено к {addr}")
-
-            while True:
-                data = client_socket.recv(1024).decode()
-                if data == 'get coordinates':
-                    print('Send coordinates')
-                    client_socket.sendall(('Coordinates' + ';'.join(map(str, points))).encode())
-                elif data == 'done':
-                    print('Client stop')
-                    break
-
-            client_socket.close()
-            server.close()
-
-
-if __name__== '__main__':
-    main()
+if __name__ == "__main__":
+    wss = WebSocketServer()

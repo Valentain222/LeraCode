@@ -83,6 +83,12 @@ COUNT_IMAGES = 8
 NUMBER_VIDEOS = 1
 VIDEO_SIZE = (500, 500)
 
+# -------------------------
+ROTATE_SLEEP = 0.5
+IS_CHECK_SEND = False
+IS_NONE_ROTATE_SLEEP = False
+# -------------------------
+
 
 def get_image(manipulate: MCX):
     image_byte = manipulate.getCamera1Image()
@@ -119,8 +125,9 @@ def json_load(file_name):
 # Tree variant of function
 def manipulate_move(manipulate, x, y, z, t, grapper):
     manipulate.move(ROBOT_NAME, x, y, z, t, grapper)
-    while manipulate.getManipulatorStatus() == 0:
-        time.sleep(0.2)
+    if IS_CHECK_SEND:
+        while manipulate.getManipulatorStatus() == 0:
+            time.sleep(0.2)
 
 
 def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_coordinates: list, point_coordinates):
@@ -166,7 +173,6 @@ def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_co
                 angles = list(range(1, 180, 10)) + list(range(-180, 1, 10))
                 number_image = 0
                 frames = []
-                is_receive = True
                 while number_image <= len(angles) - 1:
                     if manipulate.getManipulatorStatus() == 0:
                         manipulate_move(manipulate, manipulate_x, manipulate_y, manipulate_z, angles[number_image], 1)
@@ -175,7 +181,10 @@ def flask_move(manipulate: MCX, steps: Steps, start_coordinates: list, camera_co
                         frames.append(image)
                         number_image += 1
 
-                        time.sleep(0.5)
+                        time.sleep(ROTATE_SLEEP)
+
+                    if IS_NONE_ROTATE_SLEEP:
+                        time.sleep(0.01)
 
                 create_video(frames)
 
@@ -188,7 +197,7 @@ def load_point() -> str:
     return point
 
 
-def load_points():
+def load_points() -> list[str]:
     return input().split()
 
 
